@@ -16,8 +16,8 @@ data "aws_ami" "ubuntu_2404" {
 
 #SG + EC2 For Old DB
 resource "aws_security_group" "ec2_sg" {
-  name        = "ec2-sg"
-  description = "Security group for EC2 instance"
+  name        = "${var.project_name}-ec2-sg"
+  description = "Security group for general EC2 instance"
 
   ingress {
     description = "SSH from anywhere"
@@ -148,14 +148,51 @@ resource "aws_ami_from_instance" "old_ec2_ami" {
   }
 }
 
-#Database EC2 + SG + ASG
+#Database EC2 + SG
+
+resource "aws_security_group" "ec2_sg_db" {
+  name        = "${var.project_name}-ec2-db-sg"
+  description = "Security group for DB EC2 instance"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description = "SSH from Admin Subnet"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.90.0/24"]
+  }
+
+  ingress {
+    description     = "Allow ingress from EKS SG"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.eks_nodes_sg.id]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "ec2-db-sg"
+  }
+}
+
 resource "aws_instance" "ec2_db" {
 
   ami           = aws_ami_from_instance.old_ec2_ami.id
   instance_type = "t3.small"
   tags          = { Name = "${var.project_name}-db-ec2" }
 
+  subnet_id = var.private_db_subnet_id
+
   vpc_security_group_ids = [
-    aws_security_group.ec2_sg.id
+    aws_security_group.ec2_sg_db.id
   ]
 }

@@ -26,9 +26,20 @@ resource "aws_subnet" "private_db" {
   }
 }
 
-resource "aws_subnet" "private_backend" {
+resource "aws_subnet" "private_backend_a" {
   vpc_id     = aws_vpc.main.id
   cidr_block = var.private_subnet_cidrs[1]
+  availability_zone = "us-east-1a"
+
+  tags = {
+    Name = "${var.project_name}-backend-subnet"
+  }
+}
+
+resource "aws_subnet" "private_backend_b" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = var.private_subnet_cidrs[2]
+  availability_zone = "us-east-1b"
 
   tags = {
     Name = "${var.project_name}-backend-subnet"
