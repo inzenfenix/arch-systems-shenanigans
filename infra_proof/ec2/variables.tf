@@ -1,7 +1,7 @@
 variable "project_name" {
-description = "Prefix"
-type = string
-default = "orders-lab"
+  description = "Prefix"
+  type        = string
+  default     = "orders-lab"
 }
 
 variable "vpc_id" {
@@ -13,5 +13,9 @@ variable "private_eks_subnet_ids" {
 }
 
 variable "private_db_subnet_id" {
-    type = string
+  type = string
+}
+
+variable "public_subnet_id" {
+  type = string
 }

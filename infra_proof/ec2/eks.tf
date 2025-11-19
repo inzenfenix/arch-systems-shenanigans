@@ -5,9 +5,10 @@ resource "aws_eks_cluster" "eks_backend" {
   role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_config {
-    subnet_ids = var.private_eks_subnet_ids
+    subnet_ids              = var.private_eks_subnet_ids
     endpoint_private_access = true
     endpoint_public_access  = false
+    security_group_ids = [aws_security_group.ec2_sg_bastion.id]
   }
 
   depends_on = [
@@ -15,24 +16,6 @@ resource "aws_eks_cluster" "eks_backend" {
     aws_iam_role_policy_attachment.eks_service_policy,
   ]
 }
-
-#SG
-resource "aws_security_group" "eks_nodes_sg" {
-  name        = "${var.project_name}-eks-nodes-sg"
-  description = "EKS Nodes Security Group"
-  vpc_id      = var.vpc_id
-
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = { Name = "eks-sg" }
-}
-
 
 #eks role
 resource "aws_iam_role" "eks_cluster_role" {
@@ -70,10 +53,12 @@ resource "aws_eks_node_group" "backend_nodes" {
   node_role_arn   = aws_iam_role.eks_node_role.arn
   subnet_ids      = var.private_eks_subnet_ids
 
+  
+
   scaling_config {
-    desired_size = 2
+    desired_size = 1
     max_size     = 3
-    min_size = 1
+    min_size     = 1
   }
   depends_on = [
     aws_iam_role_policy_attachment.eks_worker_node,
@@ -81,7 +66,7 @@ resource "aws_eks_node_group" "backend_nodes" {
     aws_iam_role_policy_attachment.eks_registry,
   ]
 
-  instance_types = ["t3.small"]
+  instance_types = ["c7i-flex.large"]
 }
 
 #eks pods role
@@ -92,9 +77,9 @@ resource "aws_iam_role" "eks_node_role" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow",
+        Effect    = "Allow",
         Principal = { Service = "ec2.amazonaws.com" },
-        Action = "sts:AssumeRole"
+        Action    = "sts:AssumeRole"
       }
     ]
   })

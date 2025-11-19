@@ -168,7 +168,7 @@ resource "aws_security_group" "ec2_sg_db" {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [aws_security_group.eks_nodes_sg.id]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -194,5 +194,47 @@ resource "aws_instance" "ec2_db" {
 
   vpc_security_group_ids = [
     aws_security_group.ec2_sg_db.id
+  ]
+}
+
+#Bastion SG + EC2
+
+resource "aws_security_group" "ec2_sg_bastion" {
+  name        = "${var.project_name}-ec2-bastion-sg"
+  description = "Security group for DB EC2 instance"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description = "SSH from Admin"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "ec2-bastion-sg"
+  }
+}
+
+resource "aws_instance" "ec2_bastion" {
+
+  ami           = data.aws_ami.ubuntu_2404.id
+  instance_type = "t3.micro"
+  tags          = { Name = "${var.project_name}-bastion-ec2" }
+
+  subnet_id = var.public_subnet_id
+  associate_public_ip_address = true
+
+  vpc_security_group_ids = [
+    aws_security_group.ec2_sg_bastion.id
   ]
 }
